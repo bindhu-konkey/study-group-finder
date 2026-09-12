@@ -7,6 +7,7 @@
     "start": "node src/index.js"
   },
   "dependencies": {
+<<<<<<< HEAD
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.4.2",
@@ -16,5 +17,11 @@
     "mongodb-memory-server": "^11.2.0",
     "mongoose": "^9.10.0",
     "puppeteer-core": "^25.10.0"
+=======
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "mongoose": "^9.10.0"
+>>>>>>> 452f9fbde59162178ac32d61d868c05608a7bfaa
   }
 }
