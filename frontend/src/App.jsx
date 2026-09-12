@@ -1,42 +1,238 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 
+const API = "http://localhost:4000";
+const USERNAME = "Bindhu";
+
 function App() {
+  const [groups, setGroups] = useState([]);
+  const [meetings, setMeetings] = useState([]);
+
+  const [activePage, setActivePage] = useState("Dashboard");
   const [search, setSearch] = useState("");
+
   const [showFilter, setShowFilter] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [availability, setAvailability] = useState("All");
 
-  // Backend groups
-  const [groups, setGroups] = useState([]);
-
-  // Selected group for View button
   const [selectedGroup, setSelectedGroup] = useState(null);
 
-  // Sidebar page
-  const [activePage, setActivePage] = useState("Dashboard");
+  const [showMeetingForm, setShowMeetingForm] =
+    useState(false);
 
-  // Get groups from backend
+  const [meetingForm, setMeetingForm] = useState({
+    groupId: "",
+    title: "",
+    date: "",
+    time: "",
+    location: "",
+    meetingLink: "",
+  });
+
+  /* =========================
+     LOAD GROUPS
+  ========================= */
+
+  const loadGroups = async () => {
+    try {
+      const response = await fetch(`${API}/api/groups`);
+
+      if (!response.ok) {
+        throw new Error("Failed to load groups");
+      }
+
+      const data = await response.json();
+      setGroups(data);
+    } catch (error) {
+      console.error("Groups error:", error);
+    }
+  };
+
+  /* =========================
+     LOAD MEETINGS
+  ========================= */
+
+  const loadMeetings = async () => {
+    try {
+      const response = await fetch(`${API}/api/meetings`);
+
+      if (!response.ok) {
+        throw new Error("Failed to load meetings");
+      }
+
+      const data = await response.json();
+      setMeetings(data);
+    } catch (error) {
+      console.error("Meetings error:", error);
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:4000/api/groups")
-      .then((response) => response.json())
-      .then((data) => {
-        setGroups(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching groups:", error);
-      });
+    loadGroups();
+    loadMeetings();
   }, []);
 
-  // Filter groups
+  /* =========================
+     JOIN GROUP - MEMBER 3
+  ========================= */
+
+  const joinGroup = async (group) => {
+    try {
+      const response = await fetch(
+        `${API}/api/groups/${group.id}/join`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: USERNAME,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Unable to join group");
+        return;
+      }
+
+      alert("You joined the group successfully!");
+
+      setSelectedGroup(null);
+      await loadGroups();
+    } catch (error) {
+      console.error(error);
+      alert("Backend connection failed.");
+    }
+  };
+
+  /* =========================
+     LEAVE GROUP - MEMBER 3
+  ========================= */
+
+  const leaveGroup = async (group) => {
+    try {
+      const response = await fetch(
+        `${API}/api/groups/${group.id}/leave`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: USERNAME,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Unable to leave group");
+        return;
+      }
+
+      alert("You left the group.");
+
+      setSelectedGroup(null);
+      await loadGroups();
+    } catch (error) {
+      console.error(error);
+      alert("Backend connection failed.");
+    }
+  };
+
+  /* =========================
+     CREATE MEETING - MEMBER 4
+  ========================= */
+
+  const createMeeting = async (event) => {
+    event.preventDefault();
+
+    try {
+      const response = await fetch(
+        `${API}/api/meetings`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(meetingForm),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Unable to create meeting");
+        return;
+      }
+
+      alert("Meeting scheduled successfully!");
+
+      setMeetingForm({
+        groupId: "",
+        title: "",
+        date: "",
+        time: "",
+        location: "",
+        meetingLink: "",
+      });
+
+      setShowMeetingForm(false);
+
+      await loadMeetings();
+    } catch (error) {
+      console.error(error);
+      alert("Backend connection failed.");
+    }
+  };
+
+  /* =========================
+     DELETE MEETING
+  ========================= */
+
+  const deleteMeeting = async (meetingId) => {
+    const confirmDelete = window.confirm(
+      "Delete this meeting?"
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      const response = await fetch(
+        `${API}/api/meetings/${meetingId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.message || "Unable to delete meeting");
+        return;
+      }
+
+      await loadMeetings();
+    } catch (error) {
+      console.error(error);
+      alert("Backend connection failed.");
+    }
+  };
+
+  /* =========================
+     GROUP FILTER
+  ========================= */
+
   const filteredGroups = groups.filter((group) => {
+    const text = search.toLowerCase();
+
     const matchesSearch =
-      group.subject
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      group.description
-        .toLowerCase()
-        .includes(search.toLowerCase());
+      group.subject?.toLowerCase().includes(text) ||
+      group.description?.toLowerCase().includes(text);
 
     const matchesSubject =
       selectedSubject === "All" ||
@@ -54,15 +250,773 @@ function App() {
   });
 
   const clearFilters = () => {
+    setSearch("");
     setSelectedSubject("All");
     setAvailability("All");
-    setSearch("");
+  };
+
+  /* =========================
+     GROUP STATUS
+  ========================= */
+
+  const isJoined = (group) => {
+    return (
+      Array.isArray(group.joinedMembers) &&
+      group.joinedMembers.includes(USERNAME)
+    );
+  };
+
+  /* =========================
+     GROUP CARD
+  ========================= */
+
+  const GroupCard = ({ group }) => {
+    const joined = isJoined(group);
+
+    const full =
+      group.memberCount >= group.maxMembers;
+
+    return (
+      <div
+        className={`group-card ${
+          group.color || "purple"
+        }`}
+      >
+        <div className="card-top">
+          <div className="subject-icon">
+            {group.icon || "📚"}
+          </div>
+
+          <span
+            className={
+              full ? "full-badge" : "available"
+            }
+          >
+            {full ? "Full" : "Open"}
+          </span>
+        </div>
+
+        <h3>{group.subject}</h3>
+
+        <p>{group.description}</p>
+
+        <div className="card-footer">
+          <span className="members">
+            👥 {group.memberCount}/{group.maxMembers} members
+          </span>
+
+          <button
+            onClick={() => setSelectedGroup(group)}
+          >
+            View
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  /* =========================
+     DASHBOARD
+  ========================= */
+
+  const Dashboard = () => {
+    const myGroups = groups.filter((group) =>
+      isJoined(group)
+    );
+
+    return (
+      <>
+        <section className="welcome">
+          <div>
+            <p className="welcome-label">
+              GOOD MORNING ☀️
+            </p>
+
+            <h2>
+              Welcome back, Bindhu 👋
+            </h2>
+
+            <p>
+              Find your study group and keep your
+              learning on track.
+            </p>
+          </div>
+
+          <div className="welcome-books">
+            📚
+          </div>
+        </section>
+
+        <section className="stats">
+          <div className="stat-card purple-card">
+            <div className="stat-icon">♟</div>
+
+            <div>
+              <span>My Groups</span>
+              <strong>{myGroups.length}</strong>
+              <small>groups joined</small>
+            </div>
+
+            <b>›</b>
+          </div>
+
+          <div className="stat-card green-card">
+            <div className="stat-icon">▣</div>
+
+            <div>
+              <span>Upcoming Sessions</span>
+              <strong>{meetings.length}</strong>
+              <small>scheduled</small>
+            </div>
+
+            <b>›</b>
+          </div>
+
+          <div className="stat-card blue-card">
+            <div className="stat-icon">◷</div>
+
+            <div>
+              <span>Study Hours</span>
+              <strong>12h</strong>
+              <small>total this week</small>
+            </div>
+
+            <b>›</b>
+          </div>
+
+          <div className="stat-card orange-card">
+            <div className="stat-icon">♢</div>
+
+            <div>
+              <span>Notifications</span>
+              <strong>3</strong>
+              <small>new updates</small>
+            </div>
+
+            <b>›</b>
+          </div>
+        </section>
+
+        <GroupSearch />
+
+        <section className="content-section">
+          <div className="section-heading">
+            <div>
+              <h2>Study Groups</h2>
+
+              <p>
+                Find a group and start learning together.
+              </p>
+            </div>
+
+            <button
+              className="view-all"
+              onClick={() =>
+                setActivePage("Explore Groups")
+              }
+            >
+              Explore All
+            </button>
+          </div>
+
+          <div className="group-grid">
+            {filteredGroups.length > 0 ? (
+              filteredGroups.map((group) => (
+                <GroupCard
+                  key={group.id}
+                  group={group}
+                />
+              ))
+            ) : (
+              <div className="no-results">
+                <div>📚</div>
+                <h3>No groups found</h3>
+                <p>
+                  Try changing your search or filters.
+                </p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        <UpcomingSessions />
+      </>
+    );
+  };
+
+  /* =========================
+     SEARCH
+  ========================= */
+
+  const GroupSearch = () => (
+    <>
+      <section className="search-area">
+        <div className="search-box">
+          <span>⌕</span>
+
+          <input
+            type="text"
+            placeholder="Search groups by subject or course..."
+            value={search}
+            onChange={(e) =>
+              setSearch(e.target.value)
+            }
+          />
+        </div>
+
+        <button
+          className="filter-btn"
+          onClick={() =>
+            setShowFilter(!showFilter)
+          }
+        >
+          ☷ &nbsp; Filter
+        </button>
+      </section>
+
+      {showFilter && (
+        <div className="filter-panel">
+          <div className="filter-group">
+            <h4>Subject</h4>
+
+            <select
+              value={selectedSubject}
+              onChange={(e) =>
+                setSelectedSubject(e.target.value)
+              }
+            >
+              <option value="All">All Subjects</option>
+
+              {[
+                ...new Set(
+                  groups.map((group) => group.subject)
+                ),
+              ].map((subject) => (
+                <option
+                  key={subject}
+                  value={subject}
+                >
+                  {subject}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <h4>Availability</h4>
+
+            <select
+              value={availability}
+              onChange={(e) =>
+                setAvailability(e.target.value)
+              }
+            >
+              <option value="All">All</option>
+              <option value="Open">Open</option>
+              <option value="Full">Full</option>
+            </select>
+          </div>
+
+          <button
+            className="clear-filter"
+            onClick={clearFilters}
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
+    </>
+  );
+
+  /* =========================
+     UPCOMING SESSIONS
+  ========================= */
+
+  const UpcomingSessions = () => (
+    <section className="content-section">
+      <div className="section-heading">
+        <div>
+          <h2>Upcoming Sessions</h2>
+
+          <p>
+            Your scheduled study meetings.
+          </p>
+        </div>
+
+        <button
+          className="view-all"
+          onClick={() =>
+            setActivePage("Schedule")
+          }
+        >
+          View All
+        </button>
+      </div>
+
+      <div className="sessions">
+        {meetings.length === 0 ? (
+          <div className="empty-session">
+            <span>📅</span>
+
+            <div>
+              <strong>No meetings scheduled yet</strong>
+              <p>
+                Go to Schedule and create your first
+                study meeting.
+              </p>
+            </div>
+          </div>
+        ) : (
+          meetings.slice(0, 3).map((meeting) => (
+            <MeetingCard
+              key={meeting.id}
+              meeting={meeting}
+            />
+          ))
+        )}
+      </div>
+    </section>
+  );
+
+  /* =========================
+     MY GROUPS
+  ========================= */
+
+  const MyGroups = () => {
+    const myGroups = groups.filter((group) =>
+      isJoined(group)
+    );
+
+    return (
+      <section className="content-section page-section">
+        <div className="page-intro">
+          <div>
+            <h2>My Groups</h2>
+
+            <p>
+              All study groups you have joined.
+            </p>
+          </div>
+
+          <span className="page-count">
+            {myGroups.length} groups
+          </span>
+        </div>
+
+        <div className="group-grid">
+          {myGroups.length > 0 ? (
+            myGroups.map((group) => (
+              <GroupCard
+                key={group.id}
+                group={group}
+              />
+            ))
+          ) : (
+            <div className="empty-page">
+              <div>👥</div>
+              <h3>No groups joined yet</h3>
+              <p>
+                Explore groups and join one to start
+                studying together.
+              </p>
+
+              <button
+                className="primary-btn"
+                onClick={() =>
+                  setActivePage("Explore Groups")
+                }
+              >
+                Explore Groups
+              </button>
+            </div>
+          )}
+        </div>
+      </section>
+    );
+  };
+
+  /* =========================
+     EXPLORE GROUPS
+  ========================= */
+
+  const ExploreGroups = () => (
+    <section className="content-section page-section">
+      <div className="page-intro">
+        <div>
+          <h2>Explore Groups</h2>
+
+          <p>
+            Discover study groups and join the ones
+            that interest you.
+          </p>
+        </div>
+      </div>
+
+      <GroupSearch />
+
+      <div className="group-grid">
+        {filteredGroups.length > 0 ? (
+          filteredGroups.map((group) => (
+            <GroupCard
+              key={group.id}
+              group={group}
+            />
+          ))
+        ) : (
+          <div className="no-results">
+            <div>🔍</div>
+            <h3>No matching groups</h3>
+            <p>
+              Try another subject or search term.
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+
+  /* =========================
+     MEETING CARD
+  ========================= */
+
+  const MeetingCard = ({ meeting, full = false }) => (
+    <div className="session-card">
+      <div className="date-box">
+        <span>DATE</span>
+
+        <strong>
+          {meeting.date
+            ? meeting.date.slice(-2)
+            : "--"}
+        </strong>
+      </div>
+
+      <div className="session-info">
+        <h3>{meeting.title}</h3>
+
+        <p>
+          📚 {meeting.groupName || "Study Group"}
+        </p>
+
+        <p>
+          🕐 {meeting.time}
+          {meeting.location
+            ? `  •  📍 ${meeting.location}`
+            : ""}
+        </p>
+      </div>
+
+      <span className="session-status">
+        Scheduled
+      </span>
+
+      {full && (
+        <button
+          className="delete-btn"
+          onClick={() =>
+            deleteMeeting(meeting.id)
+          }
+        >
+          Delete
+        </button>
+      )}
+    </div>
+  );
+
+  /* =========================
+     SCHEDULE
+  ========================= */
+
+  const Schedule = () => (
+    <section className="content-section page-section">
+      <div className="page-intro">
+        <div>
+          <h2>Study Schedule</h2>
+
+          <p>
+            Plan meetings and stay on track with your
+            study group.
+          </p>
+        </div>
+
+        <button
+          className="primary-btn"
+          onClick={() =>
+            setShowMeetingForm(!showMeetingForm)
+          }
+        >
+          + Schedule Meeting
+        </button>
+      </div>
+
+      {showMeetingForm && (
+        <form
+          className="meeting-form"
+          onSubmit={createMeeting}
+        >
+          <div className="form-title">
+            <div className="form-icon">📅</div>
+
+            <div>
+              <h3>Schedule a Meeting</h3>
+
+              <p>
+                Add the details of your study session.
+              </p>
+            </div>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-group">
+              <label>Study Group *</label>
+
+              <select
+                required
+                value={meetingForm.groupId}
+                onChange={(e) =>
+                  setMeetingForm({
+                    ...meetingForm,
+                    groupId: e.target.value,
+                  })
+                }
+              >
+                <option value="">
+                  Select a study group
+                </option>
+
+                {groups.map((group) => (
+                  <option
+                    key={group.id}
+                    value={group.id}
+                  >
+                    {group.subject}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Meeting Title *</label>
+
+              <input
+                required
+                type="text"
+                placeholder="e.g. Java Practice Session"
+                value={meetingForm.title}
+                onChange={(e) =>
+                  setMeetingForm({
+                    ...meetingForm,
+                    title: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Date *</label>
+
+              <input
+                required
+                type="date"
+                value={meetingForm.date}
+                onChange={(e) =>
+                  setMeetingForm({
+                    ...meetingForm,
+                    date: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Time *</label>
+
+              <input
+                required
+                type="time"
+                value={meetingForm.time}
+                onChange={(e) =>
+                  setMeetingForm({
+                    ...meetingForm,
+                    time: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Classroom / Location</label>
+
+              <input
+                type="text"
+                placeholder="e.g. Lab 3"
+                value={meetingForm.location}
+                onChange={(e) =>
+                  setMeetingForm({
+                    ...meetingForm,
+                    location: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Online Meeting Link</label>
+
+              <input
+                type="url"
+                placeholder="https://meet.google.com/..."
+                value={meetingForm.meetingLink}
+                onChange={(e) =>
+                  setMeetingForm({
+                    ...meetingForm,
+                    meetingLink: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="form-actions">
+            <button
+              type="button"
+              className="secondary-btn"
+              onClick={() =>
+                setShowMeetingForm(false)
+              }
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              className="primary-btn"
+            >
+              Create Meeting
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="schedule-heading">
+        <h3>Upcoming Meetings</h3>
+
+        <span>{meetings.length} scheduled</span>
+      </div>
+
+      <div className="sessions">
+        {meetings.length === 0 ? (
+          <div className="empty-page">
+            <div>📅</div>
+            <h3>No meetings yet</h3>
+            <p>
+              Schedule a meeting for your study group.
+            </p>
+          </div>
+        ) : (
+          meetings.map((meeting) => (
+            <div key={meeting.id}>
+              <MeetingCard
+                meeting={meeting}
+                full={true}
+              />
+
+              {meeting.meetingLink && (
+                <div className="meeting-link-row">
+                  <a
+                    href={meeting.meetingLink}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    🔗 Join Online Meeting
+                  </a>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+
+  /* =========================
+     NOTIFICATIONS
+  ========================= */
+
+  const Notifications = () => (
+    <section className="content-section page-section">
+      <div className="page-intro">
+        <div>
+          <h2>Notifications</h2>
+
+          <p>
+            Stay updated with your study activities.
+          </p>
+        </div>
+      </div>
+
+      <div className="notification-list">
+        <div className="notification-card">
+          <div className="notification-icon">
+            👥
+          </div>
+
+          <div>
+            <h3>Study Group Updates</h3>
+
+            <p>
+              Check your joined groups for new
+              activities and members.
+            </p>
+          </div>
+        </div>
+
+        <div className="notification-card">
+          <div className="notification-icon green">
+            📅
+          </div>
+
+          <div>
+            <h3>Upcoming Sessions</h3>
+
+            <p>
+              You have {meetings.length} scheduled
+              study session(s).
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  /* =========================
+     PAGE CONTENT
+  ========================= */
+
+  const renderPage = () => {
+    switch (activePage) {
+      case "My Groups":
+        return <MyGroups />;
+
+      case "Explore Groups":
+        return <ExploreGroups />;
+
+      case "Schedule":
+        return <Schedule />;
+
+      case "Notifications":
+        return <Notifications />;
+
+      default:
+        return <Dashboard />;
+    }
   };
 
   return (
     <div className="app">
 
       {/* SIDEBAR */}
+
       <aside className="sidebar">
 
         <div className="logo">
@@ -72,6 +1026,7 @@ function App() {
             <h2>
               Study<span>Group</span>
             </h2>
+
             <small>FINDER</small>
           </div>
         </div>
@@ -81,9 +1036,13 @@ function App() {
 
           <button
             className={`menu-item ${
-              activePage === "Dashboard" ? "active" : ""
+              activePage === "Dashboard"
+                ? "active"
+                : ""
             }`}
-            onClick={() => setActivePage("Dashboard")}
+            onClick={() =>
+              setActivePage("Dashboard")
+            }
           >
             <span>⌂</span>
             Dashboard
@@ -91,9 +1050,13 @@ function App() {
 
           <button
             className={`menu-item ${
-              activePage === "My Groups" ? "active" : ""
+              activePage === "My Groups"
+                ? "active"
+                : ""
             }`}
-            onClick={() => setActivePage("My Groups")}
+            onClick={() =>
+              setActivePage("My Groups")
+            }
           >
             <span>♟</span>
             My Groups
@@ -101,9 +1064,13 @@ function App() {
 
           <button
             className={`menu-item ${
-              activePage === "Explore Groups" ? "active" : ""
+              activePage === "Explore Groups"
+                ? "active"
+                : ""
             }`}
-            onClick={() => setActivePage("Explore Groups")}
+            onClick={() =>
+              setActivePage("Explore Groups")
+            }
           >
             <span>⌕</span>
             Explore Groups
@@ -115,9 +1082,13 @@ function App() {
 
           <button
             className={`menu-item ${
-              activePage === "Schedule" ? "active" : ""
+              activePage === "Schedule"
+                ? "active"
+                : ""
             }`}
-            onClick={() => setActivePage("Schedule")}
+            onClick={() =>
+              setActivePage("Schedule")
+            }
           >
             <span>▣</span>
             Schedule
@@ -125,18 +1096,23 @@ function App() {
 
           <button
             className={`menu-item ${
-              activePage === "Notifications" ? "active" : ""
+              activePage === "Notifications"
+                ? "active"
+                : ""
             }`}
-            onClick={() => setActivePage("Notifications")}
+            onClick={() =>
+              setActivePage("Notifications")
+            }
           >
             <span>♢</span>
             Notifications
-            <span className="notification-count">2</span>
+            <span className="notification-count">
+              2
+            </span>
           </button>
         </nav>
 
         <div className="sidebar-profile">
-
           <div className="avatar">B</div>
 
           <div>
@@ -145,18 +1121,14 @@ function App() {
           </div>
 
           <span className="profile-arrow">›</span>
-
         </div>
-
       </aside>
 
-
       {/* MAIN */}
+
       <main className="main">
 
-        {/* TOP BAR */}
         <header className="topbar">
-
           <div>
             <h1>{activePage}</h1>
 
@@ -166,14 +1138,17 @@ function App() {
           </div>
 
           <div className="top-actions">
-
-            <button className="top-notification">
+            <button
+              className="top-notification"
+              onClick={() =>
+                setActivePage("Notifications")
+              }
+            >
               ♢
               <span>2</span>
             </button>
 
             <div className="top-profile">
-
               <div className="small-avatar">
                 B
               </div>
@@ -184,872 +1159,112 @@ function App() {
               </div>
 
               <span>⌄</span>
-
             </div>
-
           </div>
-
         </header>
 
-
-        {/* DASHBOARD */}
-        {activePage === "Dashboard" && (
-          <>
-            {/* WELCOME */}
-            <section className="welcome">
-
-              <div>
-
-                <p className="welcome-label">
-                  GOOD MORNING ☀️
-                </p>
-
-                <h2>
-                  Welcome back, Bindhu 👋
-                </h2>
-
-                <p>
-                  Find your study group and keep your
-                  learning on track.
-                </p>
-
-              </div>
-
-              <div className="welcome-books">
-                📚
-              </div>
-
-            </section>
-
-
-            {/* STATISTICS */}
-            <section className="stats">
-
-              <div className="stat-card purple-card">
-
-                <div className="stat-icon">
-                  ♟
-                </div>
-
-                <div>
-                  <span>My Groups</span>
-                  <strong>3</strong>
-                  <small>groups joined</small>
-                </div>
-
-                <b>›</b>
-
-              </div>
-
-
-              <div className="stat-card green-card">
-
-                <div className="stat-icon">
-                  ▣
-                </div>
-
-                <div>
-                  <span>Upcoming Sessions</span>
-                  <strong>2</strong>
-                  <small>this week</small>
-                </div>
-
-                <b>›</b>
-
-              </div>
-
-
-              <div className="stat-card blue-card">
-
-                <div className="stat-icon">
-                  ◷
-                </div>
-
-                <div>
-                  <span>Study Hours</span>
-                  <strong>12h</strong>
-                  <small>total this week</small>
-                </div>
-
-                <b>›</b>
-
-              </div>
-
-
-              <div className="stat-card orange-card">
-
-                <div className="stat-icon">
-                  ♢
-                </div>
-
-                <div>
-                  <span>Notifications</span>
-                  <strong>3</strong>
-                  <small>new updates</small>
-                </div>
-
-                <b>›</b>
-
-              </div>
-
-            </section>
-
-
-            {/* SEARCH */}
-            <section className="search-area">
-
-              <div className="search-box">
-
-                <span>⌕</span>
-
-                <input
-                  type="text"
-                  placeholder="Search groups by subject or course..."
-                  value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
-                />
-
-              </div>
-
-
-              <button
-                className="filter-btn"
-                onClick={() =>
-                  setShowFilter(!showFilter)
-                }
-              >
-                ☷ &nbsp; Filter
-              </button>
-
-            </section>
-
-
-            {/* FILTER PANEL */}
-            {showFilter && (
-
-              <div className="filter-panel">
-
-                <div className="filter-group">
-
-                  <h4>Subject</h4>
-
-                  <select
-                    value={selectedSubject}
-                    onChange={(e) =>
-                      setSelectedSubject(e.target.value)
-                    }
-                  >
-
-                    <option value="All">
-                      All Subjects
-                    </option>
-
-                    <option value="Java Programming">
-                      Java Programming
-                    </option>
-
-                    <option value="Computer Networks">
-                      Computer Networks
-                    </option>
-
-                    <option value="Database Management">
-                      Database Management
-                    </option>
-
-                  </select>
-
-                </div>
-
-
-                <div className="filter-group">
-
-                  <h4>Availability</h4>
-
-                  <select
-                    value={availability}
-                    onChange={(e) =>
-                      setAvailability(e.target.value)
-                    }
-                  >
-
-                    <option value="All">
-                      All
-                    </option>
-
-                    <option value="Open">
-                      Open
-                    </option>
-
-                  </select>
-
-                </div>
-
-
-                <button
-                  className="clear-filter"
-                  onClick={clearFilters}
-                >
-                  Clear Filters
-                </button>
-
-              </div>
-
-            )}
-
-
-            {/* STUDY GROUPS */}
-            <section className="content-section">
-
-              <div className="section-heading">
-
-                <div>
-
-                  <h2>
-                    Explore Study Groups
-                  </h2>
-
-                  <p>
-                    Find students learning the same subjects.
-                  </p>
-
-                </div>
-
-                <button
-                  className="view-all"
-                  onClick={() =>
-                    setActivePage("Explore Groups")
-                  }
-                >
-                  View all →
-                </button>
-
-              </div>
-
-
-              <div className="group-grid">
-
-                {filteredGroups.length > 0 ? (
-
-                  filteredGroups.map((group) => (
-
-                    <div
-                      className={`group-card ${group.color}`}
-                      key={group.subject}
-                    >
-
-                      <div className="card-top">
-
-                        <div className="subject-icon">
-                          {group.icon}
-                        </div>
-
-                        <span className="available">
-                          {group.availability}
-                        </span>
-
-                      </div>
-
-
-                      <h3>
-                        {group.subject}
-                      </h3>
-
-
-                      <p>
-                        {group.description}
-                      </p>
-
-
-                      <div className="card-footer">
-
-                        <div className="members">
-                          ♟ &nbsp;
-                          {group.members} members
-                        </div>
-
-
-                        <button
-                          onClick={() =>
-                            setSelectedGroup(group)
-                          }
-                        >
-                          View →
-                        </button>
-
-                      </div>
-
-                    </div>
-
-                  ))
-
-                ) : (
-
-                  <div className="no-results">
-
-                    <div>⌕</div>
-
-                    <h3>
-                      No groups found
-                    </h3>
-
-                    <p>
-                      Try changing your search or filters.
-                    </p>
-
-                  </div>
-
-                )}
-
-              </div>
-
-            </section>
-
-
-            {/* UPCOMING SESSIONS */}
-            <section className="content-section">
-
-              <div className="section-heading">
-
-                <div>
-
-                  <h2>
-                    Upcoming Study Sessions
-                  </h2>
-
-                  <p>
-                    Don't miss your scheduled sessions.
-                  </p>
-
-                </div>
-
-                <button
-                  className="view-all"
-                  onClick={() =>
-                    setActivePage("Schedule")
-                  }
-                >
-                  View schedule →
-                </button>
-
-              </div>
-
-
-              <div className="sessions">
-
-                <div className="session-card">
-
-                  <div className="date-box">
-
-                    <span>SEP</span>
-                    <strong>15</strong>
-
-                  </div>
-
-
-                  <div className="session-info">
-
-                    <h3>
-                      Java Study Session
-                    </h3>
-
-                    <p>
-                      ◷ &nbsp;4:00 PM &nbsp; • &nbsp;
-                      📍 Computer Lab / Google Meet
-                    </p>
-
-                  </div>
-
-
-                  <span className="session-status">
-                    Upcoming
-                  </span>
-
-
-                  <button
-                    className="details-btn"
-                    onClick={() =>
-                      alert(
-                        "Java Study Session\n\nDate: September 15\nTime: 4:00 PM\nLocation: Computer Lab / Google Meet"
-                      )
-                    }
-                  >
-                    Details →
-                  </button>
-
-                </div>
-
-
-                <div className="session-card">
-
-                  <div className="date-box blue-date">
-
-                    <span>SEP</span>
-                    <strong>17</strong>
-
-                  </div>
-
-
-                  <div className="session-info">
-
-                    <h3>
-                      Computer Networks Discussion
-                    </h3>
-
-                    <p>
-                      ◷ &nbsp;5:00 PM &nbsp; • &nbsp;
-                      📍 Classroom 204
-                    </p>
-
-                  </div>
-
-
-                  <span className="session-status">
-                    Upcoming
-                  </span>
-
-
-                  <button
-                    className="details-btn"
-                    onClick={() =>
-                      alert(
-                        "Computer Networks Discussion\n\nDate: September 17\nTime: 5:00 PM\nLocation: Classroom 204"
-                      )
-                    }
-                  >
-                    Details →
-                  </button>
-
-                </div>
-
-              </div>
-
-            </section>
-          </>
-        )}
-
-
-        {/* MY GROUPS */}
-        {activePage === "My Groups" && (
-          <section className="content-section">
-
-            <div className="section-heading">
-              <div>
-                <h2>My Study Groups</h2>
-                <p>Groups you have joined.</p>
-              </div>
-            </div>
-
-            <div className="group-grid">
-
-              {groups.slice(0, 3).map((group) => (
-
-                <div
-                  className={`group-card ${group.color}`}
-                  key={group.subject}
-                >
-
-                  <div className="card-top">
-
-                    <div className="subject-icon">
-                      {group.icon}
-                    </div>
-
-                    <span className="available">
-                      {group.availability}
-                    </span>
-
-                  </div>
-
-                  <h3>{group.subject}</h3>
-
-                  <p>{group.description}</p>
-
-                  <div className="card-footer">
-
-                    <div className="members">
-                      ♟ &nbsp;
-                      {group.members} members
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        setSelectedGroup(group)
-                      }
-                    >
-                      View →
-                    </button>
-
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          </section>
-        )}
-
-
-        {/* EXPLORE GROUPS */}
-        {activePage === "Explore Groups" && (
-          <section className="content-section">
-
-            <div className="section-heading">
-
-              <div>
-                <h2>Explore Study Groups</h2>
-                <p>Find students learning the same subjects.</p>
-              </div>
-
-            </div>
-
-            <section className="search-area">
-
-              <div className="search-box">
-
-                <span>⌕</span>
-
-                <input
-                  type="text"
-                  placeholder="Search groups..."
-                  value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
-                />
-
-              </div>
-
-            </section>
-
-
-            <div className="group-grid">
-
-              {filteredGroups.map((group) => (
-
-                <div
-                  className={`group-card ${group.color}`}
-                  key={group.subject}
-                >
-
-                  <div className="card-top">
-
-                    <div className="subject-icon">
-                      {group.icon}
-                    </div>
-
-                    <span className="available">
-                      {group.availability}
-                    </span>
-
-                  </div>
-
-                  <h3>{group.subject}</h3>
-
-                  <p>{group.description}</p>
-
-                  <div className="card-footer">
-
-                    <div className="members">
-                      ♟ &nbsp;
-                      {group.members} members
-                    </div>
-
-                    <button
-                      onClick={() =>
-                        setSelectedGroup(group)
-                      }
-                    >
-                      View →
-                    </button>
-
-                  </div>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          </section>
-        )}
-
-
-        {/* SCHEDULE */}
-        {activePage === "Schedule" && (
-          <section className="content-section">
-
-            <div className="section-heading">
-
-              <div>
-                <h2>Study Schedule</h2>
-                <p>Don't miss your scheduled sessions.</p>
-              </div>
-
-            </div>
-
-
-            <div className="sessions">
-
-              <div className="session-card">
-
-                <div className="date-box">
-
-                  <span>SEP</span>
-                  <strong>15</strong>
-
-                </div>
-
-                <div className="session-info">
-
-                  <h3>Java Study Session</h3>
-
-                  <p>
-                    ◷ &nbsp;4:00 PM &nbsp; • &nbsp;
-                    📍 Computer Lab / Google Meet
-                  </p>
-
-                </div>
-
-                <span className="session-status">
-                  Upcoming
-                </span>
-
-                <button
-                  className="details-btn"
-                  onClick={() =>
-                    alert(
-                      "Java Study Session\n\nDate: September 15\nTime: 4:00 PM\nLocation: Computer Lab / Google Meet"
-                    )
-                  }
-                >
-                  Details →
-                </button>
-
-              </div>
-
-
-              <div className="session-card">
-
-                <div className="date-box blue-date">
-
-                  <span>SEP</span>
-                  <strong>17</strong>
-
-                </div>
-
-                <div className="session-info">
-
-                  <h3>
-                    Computer Networks Discussion
-                  </h3>
-
-                  <p>
-                    ◷ &nbsp;5:00 PM &nbsp; • &nbsp;
-                    📍 Classroom 204
-                  </p>
-
-                </div>
-
-                <span className="session-status">
-                  Upcoming
-                </span>
-
-                <button
-                  className="details-btn"
-                  onClick={() =>
-                    alert(
-                      "Computer Networks Discussion\n\nDate: September 17\nTime: 5:00 PM\nLocation: Classroom 204"
-                    )
-                  }
-                >
-                  Details →
-                </button>
-
-              </div>
-
-            </div>
-
-          </section>
-        )}
-
-
-        {/* NOTIFICATIONS */}
-        {activePage === "Notifications" && (
-          <section className="content-section">
-
-            <div className="section-heading">
-
-              <div>
-                <h2>Notifications</h2>
-                <p>Your latest study updates.</p>
-              </div>
-
-            </div>
-
-
-            <div className="sessions">
-
-              <div className="session-card">
-
-                <div className="date-box">
-                  <span>NEW</span>
-                  <strong>2</strong>
-                </div>
-
-                <div className="session-info">
-
-                  <h3>Java Study Session</h3>
-
-                  <p>
-                    Your Java study session is scheduled
-                    for September 15 at 4:00 PM.
-                  </p>
-
-                </div>
-
-                <span className="session-status">
-                  New
-                </span>
-
-              </div>
-
-
-              <div className="session-card">
-
-                <div className="date-box blue-date">
-                  <span>NEW</span>
-                  <strong>1</strong>
-                </div>
-
-                <div className="session-info">
-
-                  <h3>Computer Networks</h3>
-
-                  <p>
-                    Computer Networks discussion is
-                    scheduled for September 17.
-                  </p>
-
-                </div>
-
-                <span className="session-status">
-                  New
-                </span>
-
-              </div>
-
-            </div>
-
-          </section>
-        )}
-
+        {renderPage()}
       </main>
 
+      {/* GROUP DETAILS MODAL */}
 
-      {/* GROUP DETAILS POPUP */}
       {selectedGroup && (
-
         <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.45)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 9999
-          }}
+          className="modal-overlay"
+          onClick={() =>
+            setSelectedGroup(null)
+          }
         >
-
           <div
-            style={{
-              background: "white",
-              width: "420px",
-              maxWidth: "90%",
-              padding: "30px",
-              borderRadius: "18px",
-              boxShadow: "0 10px 40px rgba(0,0,0,0.2)"
-            }}
+            className="group-modal"
+            onClick={(e) =>
+              e.stopPropagation()
+            }
           >
+            <button
+              className="modal-close"
+              onClick={() =>
+                setSelectedGroup(null)
+              }
+            >
+              ×
+            </button>
 
             <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "20px"
-              }}
+              className={`modal-icon ${
+                selectedGroup.color || "purple"
+              }`}
             >
-
-              <h2 style={{ margin: 0 }}>
-                {selectedGroup.icon} {selectedGroup.subject}
-              </h2>
-
-              <button
-                onClick={() => setSelectedGroup(null)}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  fontSize: "24px",
-                  cursor: "pointer",
-                  color: "#333"
-                }}
-              >
-                ✕
-              </button>
-
+              {selectedGroup.icon || "📚"}
             </div>
 
+            <span
+              className={
+                selectedGroup.memberCount >=
+                selectedGroup.maxMembers
+                  ? "full-badge"
+                  : "available"
+              }
+            >
+              {selectedGroup.memberCount >=
+              selectedGroup.maxMembers
+                ? "Group Full"
+                : "Open for Joining"}
+            </span>
 
-            <p>
+            <h2>{selectedGroup.subject}</h2>
+
+            <p className="modal-description">
               {selectedGroup.description}
             </p>
 
+            <div className="group-details">
+              <div>
+                <span>Members</span>
+                <strong>
+                  {selectedGroup.memberCount}/
+                  {selectedGroup.maxMembers}
+                </strong>
+              </div>
 
-            <p>
-              <strong>Members:</strong>{" "}
-              {selectedGroup.members}
-            </p>
+              <div>
+                <span>Status</span>
+                <strong>
+                  {selectedGroup.availability}
+                </strong>
+              </div>
+            </div>
 
-
-            <p>
-              <strong>Availability:</strong>{" "}
-              {selectedGroup.availability}
-            </p>
-
-
-            <button
-              onClick={() =>
-                alert(
-                  `You selected ${selectedGroup.subject}`
-                )
-              }
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginTop: "15px",
-                border: "none",
-                borderRadius: "10px",
-                cursor: "pointer",
-                fontWeight: "600"
-              }}
-            >
-              Join Group
-            </button>
-
+            {isJoined(selectedGroup) ? (
+              <button
+                className="danger-btn"
+                onClick={() =>
+                  leaveGroup(selectedGroup)
+                }
+              >
+                Leave Group
+              </button>
+            ) : selectedGroup.memberCount >=
+              selectedGroup.maxMembers ? (
+              <button
+                className="secondary-btn full-width"
+                disabled
+              >
+                Group Full
+              </button>
+            ) : (
+              <button
+                className="primary-btn full-width"
+                onClick={() =>
+                  joinGroup(selectedGroup)
+                }
+              >
+                Join Group
+              </button>
+            )}
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }
