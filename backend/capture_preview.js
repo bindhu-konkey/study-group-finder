@@ -2,7 +2,7 @@ import puppeteer from 'puppeteer-core';
 import path from 'path';
 
 const EDGE_PATH = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe';
-const ARTIFACT_DIR = 'C:\\Users\\obula\\.gemini\\antigravity-ide\\brain\\221a027c-200e-4c4e-9969-faada02a93c4';
+const ARTIFACT_DIR = 'C:\\Users\\muppi\\.gemini\\antigravity\\brain\\806ba19b-8548-42fa-a5f2-099025510f1a';
 
 async function capture() {
   console.log('Launching Edge browser...');
