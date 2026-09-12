@@ -7,24 +7,14 @@ function App() {
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [availability, setAvailability] = useState("All");
 
-  // Backend connection
-  const [backendStatus, setBackendStatus] = useState("");
+  // Backend groups
   const [groups, setGroups] = useState([]);
 
   // Selected group for View button
   const [selectedGroup, setSelectedGroup] = useState(null);
 
-  // Check backend connection
-  useEffect(() => {
-    fetch("http://localhost:4000/api/health")
-      .then((response) => response.json())
-      .then((data) => {
-        setBackendStatus(data.status);
-      })
-      .catch(() => {
-        setBackendStatus("Backend not connected");
-      });
-  }, []);
+  // Sidebar page
+  const [activePage, setActivePage] = useState("Dashboard");
 
   // Get groups from backend
   useEffect(() => {
@@ -89,17 +79,32 @@ function App() {
         <nav>
           <p className="menu-title">MAIN</p>
 
-          <button className="menu-item active">
+          <button
+            className={`menu-item ${
+              activePage === "Dashboard" ? "active" : ""
+            }`}
+            onClick={() => setActivePage("Dashboard")}
+          >
             <span>⌂</span>
             Dashboard
           </button>
 
-          <button className="menu-item">
+          <button
+            className={`menu-item ${
+              activePage === "My Groups" ? "active" : ""
+            }`}
+            onClick={() => setActivePage("My Groups")}
+          >
             <span>♟</span>
             My Groups
           </button>
 
-          <button className="menu-item">
+          <button
+            className={`menu-item ${
+              activePage === "Explore Groups" ? "active" : ""
+            }`}
+            onClick={() => setActivePage("Explore Groups")}
+          >
             <span>⌕</span>
             Explore Groups
           </button>
@@ -108,12 +113,22 @@ function App() {
             STUDY
           </p>
 
-          <button className="menu-item">
+          <button
+            className={`menu-item ${
+              activePage === "Schedule" ? "active" : ""
+            }`}
+            onClick={() => setActivePage("Schedule")}
+          >
             <span>▣</span>
             Schedule
           </button>
 
-          <button className="menu-item">
+          <button
+            className={`menu-item ${
+              activePage === "Notifications" ? "active" : ""
+            }`}
+            onClick={() => setActivePage("Notifications")}
+          >
             <span>♢</span>
             Notifications
             <span className="notification-count">2</span>
@@ -143,7 +158,7 @@ function App() {
         <header className="topbar">
 
           <div>
-            <h1>Dashboard</h1>
+            <h1>{activePage}</h1>
 
             <p>
               Stay organized and study better together.
@@ -177,257 +192,458 @@ function App() {
         </header>
 
 
-        {/* WELCOME */}
-        <section className="welcome">
+        {/* DASHBOARD */}
+        {activePage === "Dashboard" && (
+          <>
+            {/* WELCOME */}
+            <section className="welcome">
 
-          <div>
+              <div>
 
-            <p className="welcome-label">
-              GOOD MORNING ☀️
-            </p>
+                <p className="welcome-label">
+                  GOOD MORNING ☀️
+                </p>
 
-            <h2>
-              Welcome back, Bindhu 👋
-            </h2>
+                <h2>
+                  Welcome back, Bindhu 👋
+                </h2>
 
-            <p>
-              Find your study group and keep your
-              learning on track.
-            </p>
+                <p>
+                  Find your study group and keep your
+                  learning on track.
+                </p>
 
-          </div>
+              </div>
 
-          <div className="welcome-books">
-            📚
-          </div>
+              <div className="welcome-books">
+                📚
+              </div>
 
-        </section>
+            </section>
 
 
-        {/* BACKEND STATUS */}
-        {backendStatus && (
-          <div
-            style={{
-              textAlign: "center",
-              marginBottom: "15px",
-              fontWeight: "500"
-            }}
-          >
-            {backendStatus === "ok" ? (
-              <span>🟢 Backend connected</span>
-            ) : (
-              <span>🔴 Backend not connected</span>
+            {/* STATISTICS */}
+            <section className="stats">
+
+              <div className="stat-card purple-card">
+
+                <div className="stat-icon">
+                  ♟
+                </div>
+
+                <div>
+                  <span>My Groups</span>
+                  <strong>3</strong>
+                  <small>groups joined</small>
+                </div>
+
+                <b>›</b>
+
+              </div>
+
+
+              <div className="stat-card green-card">
+
+                <div className="stat-icon">
+                  ▣
+                </div>
+
+                <div>
+                  <span>Upcoming Sessions</span>
+                  <strong>2</strong>
+                  <small>this week</small>
+                </div>
+
+                <b>›</b>
+
+              </div>
+
+
+              <div className="stat-card blue-card">
+
+                <div className="stat-icon">
+                  ◷
+                </div>
+
+                <div>
+                  <span>Study Hours</span>
+                  <strong>12h</strong>
+                  <small>total this week</small>
+                </div>
+
+                <b>›</b>
+
+              </div>
+
+
+              <div className="stat-card orange-card">
+
+                <div className="stat-icon">
+                  ♢
+                </div>
+
+                <div>
+                  <span>Notifications</span>
+                  <strong>3</strong>
+                  <small>new updates</small>
+                </div>
+
+                <b>›</b>
+
+              </div>
+
+            </section>
+
+
+            {/* SEARCH */}
+            <section className="search-area">
+
+              <div className="search-box">
+
+                <span>⌕</span>
+
+                <input
+                  type="text"
+                  placeholder="Search groups by subject or course..."
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
+                />
+
+              </div>
+
+
+              <button
+                className="filter-btn"
+                onClick={() =>
+                  setShowFilter(!showFilter)
+                }
+              >
+                ☷ &nbsp; Filter
+              </button>
+
+            </section>
+
+
+            {/* FILTER PANEL */}
+            {showFilter && (
+
+              <div className="filter-panel">
+
+                <div className="filter-group">
+
+                  <h4>Subject</h4>
+
+                  <select
+                    value={selectedSubject}
+                    onChange={(e) =>
+                      setSelectedSubject(e.target.value)
+                    }
+                  >
+
+                    <option value="All">
+                      All Subjects
+                    </option>
+
+                    <option value="Java Programming">
+                      Java Programming
+                    </option>
+
+                    <option value="Computer Networks">
+                      Computer Networks
+                    </option>
+
+                    <option value="Database Management">
+                      Database Management
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div className="filter-group">
+
+                  <h4>Availability</h4>
+
+                  <select
+                    value={availability}
+                    onChange={(e) =>
+                      setAvailability(e.target.value)
+                    }
+                  >
+
+                    <option value="All">
+                      All
+                    </option>
+
+                    <option value="Open">
+                      Open
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <button
+                  className="clear-filter"
+                  onClick={clearFilters}
+                >
+                  Clear Filters
+                </button>
+
+              </div>
+
             )}
-          </div>
+
+
+            {/* STUDY GROUPS */}
+            <section className="content-section">
+
+              <div className="section-heading">
+
+                <div>
+
+                  <h2>
+                    Explore Study Groups
+                  </h2>
+
+                  <p>
+                    Find students learning the same subjects.
+                  </p>
+
+                </div>
+
+                <button
+                  className="view-all"
+                  onClick={() =>
+                    setActivePage("Explore Groups")
+                  }
+                >
+                  View all →
+                </button>
+
+              </div>
+
+
+              <div className="group-grid">
+
+                {filteredGroups.length > 0 ? (
+
+                  filteredGroups.map((group) => (
+
+                    <div
+                      className={`group-card ${group.color}`}
+                      key={group.subject}
+                    >
+
+                      <div className="card-top">
+
+                        <div className="subject-icon">
+                          {group.icon}
+                        </div>
+
+                        <span className="available">
+                          {group.availability}
+                        </span>
+
+                      </div>
+
+
+                      <h3>
+                        {group.subject}
+                      </h3>
+
+
+                      <p>
+                        {group.description}
+                      </p>
+
+
+                      <div className="card-footer">
+
+                        <div className="members">
+                          ♟ &nbsp;
+                          {group.members} members
+                        </div>
+
+
+                        <button
+                          onClick={() =>
+                            setSelectedGroup(group)
+                          }
+                        >
+                          View →
+                        </button>
+
+                      </div>
+
+                    </div>
+
+                  ))
+
+                ) : (
+
+                  <div className="no-results">
+
+                    <div>⌕</div>
+
+                    <h3>
+                      No groups found
+                    </h3>
+
+                    <p>
+                      Try changing your search or filters.
+                    </p>
+
+                  </div>
+
+                )}
+
+              </div>
+
+            </section>
+
+
+            {/* UPCOMING SESSIONS */}
+            <section className="content-section">
+
+              <div className="section-heading">
+
+                <div>
+
+                  <h2>
+                    Upcoming Study Sessions
+                  </h2>
+
+                  <p>
+                    Don't miss your scheduled sessions.
+                  </p>
+
+                </div>
+
+                <button
+                  className="view-all"
+                  onClick={() =>
+                    setActivePage("Schedule")
+                  }
+                >
+                  View schedule →
+                </button>
+
+              </div>
+
+
+              <div className="sessions">
+
+                <div className="session-card">
+
+                  <div className="date-box">
+
+                    <span>SEP</span>
+                    <strong>15</strong>
+
+                  </div>
+
+
+                  <div className="session-info">
+
+                    <h3>
+                      Java Study Session
+                    </h3>
+
+                    <p>
+                      ◷ &nbsp;4:00 PM &nbsp; • &nbsp;
+                      📍 Computer Lab / Google Meet
+                    </p>
+
+                  </div>
+
+
+                  <span className="session-status">
+                    Upcoming
+                  </span>
+
+
+                  <button
+                    className="details-btn"
+                    onClick={() =>
+                      alert(
+                        "Java Study Session\n\nDate: September 15\nTime: 4:00 PM\nLocation: Computer Lab / Google Meet"
+                      )
+                    }
+                  >
+                    Details →
+                  </button>
+
+                </div>
+
+
+                <div className="session-card">
+
+                  <div className="date-box blue-date">
+
+                    <span>SEP</span>
+                    <strong>17</strong>
+
+                  </div>
+
+
+                  <div className="session-info">
+
+                    <h3>
+                      Computer Networks Discussion
+                    </h3>
+
+                    <p>
+                      ◷ &nbsp;5:00 PM &nbsp; • &nbsp;
+                      📍 Classroom 204
+                    </p>
+
+                  </div>
+
+
+                  <span className="session-status">
+                    Upcoming
+                  </span>
+
+
+                  <button
+                    className="details-btn"
+                    onClick={() =>
+                      alert(
+                        "Computer Networks Discussion\n\nDate: September 17\nTime: 5:00 PM\nLocation: Classroom 204"
+                      )
+                    }
+                  >
+                    Details →
+                  </button>
+
+                </div>
+
+              </div>
+
+            </section>
+          </>
         )}
 
 
-        {/* STATISTICS */}
-        <section className="stats">
+        {/* MY GROUPS */}
+        {activePage === "My Groups" && (
+          <section className="content-section">
 
-          <div className="stat-card purple-card">
-
-            <div className="stat-icon">
-              ♟
+            <div className="section-heading">
+              <div>
+                <h2>My Study Groups</h2>
+                <p>Groups you have joined.</p>
+              </div>
             </div>
 
-            <div>
-              <span>My Groups</span>
-              <strong>3</strong>
-              <small>groups joined</small>
-            </div>
+            <div className="group-grid">
 
-            <b>›</b>
-
-          </div>
-
-
-          <div className="stat-card green-card">
-
-            <div className="stat-icon">
-              ▣
-            </div>
-
-            <div>
-              <span>Upcoming Sessions</span>
-              <strong>2</strong>
-              <small>this week</small>
-            </div>
-
-            <b>›</b>
-
-          </div>
-
-
-          <div className="stat-card blue-card">
-
-            <div className="stat-icon">
-              ◷
-            </div>
-
-            <div>
-              <span>Study Hours</span>
-              <strong>12h</strong>
-              <small>total this week</small>
-            </div>
-
-            <b>›</b>
-
-          </div>
-
-
-          <div className="stat-card orange-card">
-
-            <div className="stat-icon">
-              ♢
-            </div>
-
-            <div>
-              <span>Notifications</span>
-              <strong>3</strong>
-              <small>new updates</small>
-            </div>
-
-            <b>›</b>
-
-          </div>
-
-        </section>
-
-
-        {/* SEARCH */}
-        <section className="search-area">
-
-          <div className="search-box">
-
-            <span>⌕</span>
-
-            <input
-              type="text"
-              placeholder="Search groups by subject or course..."
-              value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
-            />
-
-          </div>
-
-
-          <button
-            className="filter-btn"
-            onClick={() =>
-              setShowFilter(!showFilter)
-            }
-          >
-            ☷ &nbsp; Filter
-          </button>
-
-        </section>
-
-
-        {/* FILTER PANEL */}
-        {showFilter && (
-
-          <div className="filter-panel">
-
-            <div className="filter-group">
-
-              <h4>Subject</h4>
-
-              <select
-                value={selectedSubject}
-                onChange={(e) =>
-                  setSelectedSubject(e.target.value)
-                }
-              >
-
-                <option value="All">
-                  All Subjects
-                </option>
-
-                <option value="Java Programming">
-                  Java Programming
-                </option>
-
-                <option value="Computer Networks">
-                  Computer Networks
-                </option>
-
-                <option value="Database Management">
-                  Database Management
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <div className="filter-group">
-
-              <h4>Availability</h4>
-
-              <select
-                value={availability}
-                onChange={(e) =>
-                  setAvailability(e.target.value)
-                }
-              >
-
-                <option value="All">
-                  All
-                </option>
-
-                <option value="Open">
-                  Open
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <button
-              className="clear-filter"
-              onClick={clearFilters}
-            >
-              Clear Filters
-            </button>
-
-          </div>
-
-        )}
-
-
-        {/* STUDY GROUPS */}
-        <section className="content-section">
-
-          <div className="section-heading">
-
-            <div>
-
-              <h2>
-                Explore Study Groups
-              </h2>
-
-              <p>
-                Find students learning the same subjects.
-              </p>
-
-            </div>
-
-            <button className="view-all">
-              View all →
-            </button>
-
-          </div>
-
-
-          <div className="group-grid">
-
-            {filteredGroups.length > 0 ? (
-
-              filteredGroups.map((group) => (
+              {groups.slice(0, 3).map((group) => (
 
                 <div
                   className={`group-card ${group.color}`}
@@ -446,16 +662,9 @@ function App() {
 
                   </div>
 
+                  <h3>{group.subject}</h3>
 
-                  <h3>
-                    {group.subject}
-                  </h3>
-
-
-                  <p>
-                    {group.description}
-                  </p>
-
+                  <p>{group.description}</p>
 
                   <div className="card-footer">
 
@@ -463,7 +672,6 @@ function App() {
                       ♟ &nbsp;
                       {group.members} members
                     </div>
-
 
                     <button
                       onClick={() =>
@@ -477,133 +685,267 @@ function App() {
 
                 </div>
 
-              ))
-
-            ) : (
-
-              <div className="no-results">
-
-                <div>⌕</div>
-
-                <h3>
-                  No groups found
-                </h3>
-
-                <p>
-                  Try changing your search or filters.
-                </p>
-
-              </div>
-
-            )}
-
-          </div>
-
-        </section>
-
-
-        {/* UPCOMING SESSIONS */}
-        <section className="content-section">
-
-          <div className="section-heading">
-
-            <div>
-
-              <h2>
-                Upcoming Study Sessions
-              </h2>
-
-              <p>
-                Don't miss your scheduled sessions.
-              </p>
+              ))}
 
             </div>
 
-            <button className="view-all">
-              View schedule →
-            </button>
-
-          </div>
+          </section>
+        )}
 
 
-          <div className="sessions">
+        {/* EXPLORE GROUPS */}
+        {activePage === "Explore Groups" && (
+          <section className="content-section">
 
+            <div className="section-heading">
 
-            <div className="session-card">
-
-              <div className="date-box">
-
-                <span>SEP</span>
-                <strong>15</strong>
-
+              <div>
+                <h2>Explore Study Groups</h2>
+                <p>Find students learning the same subjects.</p>
               </div>
-
-
-              <div className="session-info">
-
-                <h3>
-                  Java Study Session
-                </h3>
-
-                <p>
-                  ◷ &nbsp;4:00 PM &nbsp; • &nbsp;
-                  📍 Computer Lab / Google Meet
-                </p>
-
-              </div>
-
-
-              <span className="session-status">
-                Upcoming
-              </span>
-
-
-              <button className="details-btn">
-                Details →
-              </button>
 
             </div>
 
+            <section className="search-area">
 
-            <div className="session-card">
+              <div className="search-box">
 
-              <div className="date-box blue-date">
+                <span>⌕</span>
 
-                <span>SEP</span>
-                <strong>17</strong>
-
-              </div>
-
-
-              <div className="session-info">
-
-                <h3>
-                  Computer Networks Discussion
-                </h3>
-
-                <p>
-                  ◷ &nbsp;5:00 PM &nbsp; • &nbsp;
-                  📍 Classroom 204
-                </p>
+                <input
+                  type="text"
+                  placeholder="Search groups..."
+                  value={search}
+                  onChange={(e) =>
+                    setSearch(e.target.value)
+                  }
+                />
 
               </div>
 
-
-              <span className="session-status">
-                Upcoming
-              </span>
+            </section>
 
 
-              <button className="details-btn">
-                Details →
-              </button>
+            <div className="group-grid">
+
+              {filteredGroups.map((group) => (
+
+                <div
+                  className={`group-card ${group.color}`}
+                  key={group.subject}
+                >
+
+                  <div className="card-top">
+
+                    <div className="subject-icon">
+                      {group.icon}
+                    </div>
+
+                    <span className="available">
+                      {group.availability}
+                    </span>
+
+                  </div>
+
+                  <h3>{group.subject}</h3>
+
+                  <p>{group.description}</p>
+
+                  <div className="card-footer">
+
+                    <div className="members">
+                      ♟ &nbsp;
+                      {group.members} members
+                    </div>
+
+                    <button
+                      onClick={() =>
+                        setSelectedGroup(group)
+                      }
+                    >
+                      View →
+                    </button>
+
+                  </div>
+
+                </div>
+
+              ))}
+
+            </div>
+
+          </section>
+        )}
+
+
+        {/* SCHEDULE */}
+        {activePage === "Schedule" && (
+          <section className="content-section">
+
+            <div className="section-heading">
+
+              <div>
+                <h2>Study Schedule</h2>
+                <p>Don't miss your scheduled sessions.</p>
+              </div>
 
             </div>
 
 
-          </div>
+            <div className="sessions">
 
-        </section>
+              <div className="session-card">
+
+                <div className="date-box">
+
+                  <span>SEP</span>
+                  <strong>15</strong>
+
+                </div>
+
+                <div className="session-info">
+
+                  <h3>Java Study Session</h3>
+
+                  <p>
+                    ◷ &nbsp;4:00 PM &nbsp; • &nbsp;
+                    📍 Computer Lab / Google Meet
+                  </p>
+
+                </div>
+
+                <span className="session-status">
+                  Upcoming
+                </span>
+
+                <button
+                  className="details-btn"
+                  onClick={() =>
+                    alert(
+                      "Java Study Session\n\nDate: September 15\nTime: 4:00 PM\nLocation: Computer Lab / Google Meet"
+                    )
+                  }
+                >
+                  Details →
+                </button>
+
+              </div>
+
+
+              <div className="session-card">
+
+                <div className="date-box blue-date">
+
+                  <span>SEP</span>
+                  <strong>17</strong>
+
+                </div>
+
+                <div className="session-info">
+
+                  <h3>
+                    Computer Networks Discussion
+                  </h3>
+
+                  <p>
+                    ◷ &nbsp;5:00 PM &nbsp; • &nbsp;
+                    📍 Classroom 204
+                  </p>
+
+                </div>
+
+                <span className="session-status">
+                  Upcoming
+                </span>
+
+                <button
+                  className="details-btn"
+                  onClick={() =>
+                    alert(
+                      "Computer Networks Discussion\n\nDate: September 17\nTime: 5:00 PM\nLocation: Classroom 204"
+                    )
+                  }
+                >
+                  Details →
+                </button>
+
+              </div>
+
+            </div>
+
+          </section>
+        )}
+
+
+        {/* NOTIFICATIONS */}
+        {activePage === "Notifications" && (
+          <section className="content-section">
+
+            <div className="section-heading">
+
+              <div>
+                <h2>Notifications</h2>
+                <p>Your latest study updates.</p>
+              </div>
+
+            </div>
+
+
+            <div className="sessions">
+
+              <div className="session-card">
+
+                <div className="date-box">
+                  <span>NEW</span>
+                  <strong>2</strong>
+                </div>
+
+                <div className="session-info">
+
+                  <h3>Java Study Session</h3>
+
+                  <p>
+                    Your Java study session is scheduled
+                    for September 15 at 4:00 PM.
+                  </p>
+
+                </div>
+
+                <span className="session-status">
+                  New
+                </span>
+
+              </div>
+
+
+              <div className="session-card">
+
+                <div className="date-box blue-date">
+                  <span>NEW</span>
+                  <strong>1</strong>
+                </div>
+
+                <div className="session-info">
+
+                  <h3>Computer Networks</h3>
+
+                  <p>
+                    Computer Networks discussion is
+                    scheduled for September 17.
+                  </p>
+
+                </div>
+
+                <span className="session-status">
+                  New
+                </span>
+
+              </div>
+
+            </div>
+
+          </section>
+        )}
 
       </main>
 
@@ -647,34 +989,21 @@ function App() {
             >
 
               <h2 style={{ margin: 0 }}>
-                {selectedGroup.subject}
+                {selectedGroup.icon} {selectedGroup.subject}
               </h2>
 
-              <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px"
-  }}
->
-  <h2 style={{ margin: 0 }}>
-    {selectedGroup.icon} {selectedGroup.subject}
-  </h2>
-
-  <button
-    onClick={() => setSelectedGroup(null)}
-    style={{
-      border: "none",
-      background: "transparent",
-      fontSize: "24px",
-      cursor: "pointer",
-      color: "#333"
-    }}
-  >
-    ✕
-  </button>
-</div>
+              <button
+                onClick={() => setSelectedGroup(null)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#333"
+                }}
+              >
+                ✕
+              </button>
 
             </div>
 
@@ -697,9 +1026,11 @@ function App() {
 
 
             <button
-              onClick={() => alert(
-                `You selected ${selectedGroup.subject}`
-              )}
+              onClick={() =>
+                alert(
+                  `You selected ${selectedGroup.subject}`
+                )
+              }
               style={{
                 width: "100%",
                 padding: "12px",
@@ -712,7 +1043,6 @@ function App() {
             >
               Join Group
             </button>
-                
 
           </div>
 
