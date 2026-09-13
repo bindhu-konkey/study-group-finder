@@ -1,5 +1,5 @@
-<<<<<<< HEAD
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @import "tailwindcss";
 
 @layer base {
@@ -21,9 +21,10 @@
     --color-success: #16803C;
     --color-warning: #B7791F;
     --color-error: #C53030;
-
-    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-    --shadow-elevated: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.04),
+      0 1px 2px -1px rgba(0, 0, 0, 0.04);
+    --shadow-elevated: 0 10px 25px -5px rgba(0, 0, 0, 0.06),
+      0 8px 10px -6px rgba(0, 0, 0, 0.03);
   }
 }
 
@@ -32,63 +33,10 @@
 
 * {
   box-sizing: border-box;
-=======
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
->>>>>>> 452f9fbde59162178ac32d61d868c05608a7bfaa
 }
 
 body {
   margin: 0;
-<<<<<<< HEAD
   padding: 0;
   background-color: var(--bg-page);
   color: var(--text-primary);
@@ -100,49 +48,55 @@ body {
   transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
 }
 
-/* Typography Hierarchy (Section 6) */
-h1, .heading-page {
-  font-size: clamp(2rem, 3.5vw, 2.5rem); /* 32-40px */
+/* Typography Hierarchy */
+h1,
+.heading-page {
+  font-size: clamp(2rem, 3.5vw, 2.5rem);
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.025em;
   color: var(--text-primary);
 }
 
-h2, .heading-section {
-  font-size: clamp(1.25rem, 2vw, 1.5rem); /* 20-24px */
+h2,
+.heading-section {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
   font-weight: 600;
   line-height: 1.3;
   letter-spacing: -0.02em;
   color: var(--text-primary);
 }
 
-h3, .heading-card {
-  font-size: 1.0625rem; /* 17px, in 16-18px range */
+h3,
+.heading-card {
+  font-size: 1.0625rem;
   font-weight: 600;
   line-height: 1.4;
   letter-spacing: -0.015em;
   color: var(--text-primary);
 }
 
-p, .body-text {
-  font-size: 0.9375rem; /* 15px, in 14-16px range */
+p,
+.body-text {
+  font-size: 0.9375rem;
   color: var(--text-secondary);
   line-height: 1.6;
 }
 
 .text-meta {
-  font-size: 0.8125rem; /* 13px, in 12-13px range */
+  font-size: 0.8125rem;
   color: var(--text-muted);
 }
 
-/* Academic Card Styling (Section 7) */
+/* Academic Card Styling */
 .academic-card {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: 12px;
   box-shadow: var(--shadow-card);
-  transition: border-color 200ms ease-in-out, box-shadow 200ms ease-in-out, transform 200ms ease-in-out;
+  transition: border-color 200ms ease-in-out,
+    box-shadow 200ms ease-in-out,
+    transform 200ms ease-in-out;
 }
 
 .academic-card:hover {
@@ -150,7 +104,7 @@ p, .body-text {
   box-shadow: var(--shadow-elevated);
 }
 
-/* Academic Buttons (8px radius, comfortable padding, clear hover) */
+/* Academic Buttons */
 .btn-primary {
   background-color: var(--primary-blue);
   color: #FFFFFF;
@@ -161,7 +115,9 @@ p, .body-text {
   border: 1px solid transparent;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  transition: background-color 200ms ease-in-out, transform 200ms ease-in-out, box-shadow 200ms ease-in-out;
+  transition: background-color 200ms ease-in-out,
+    transform 200ms ease-in-out,
+    box-shadow 200ms ease-in-out;
 }
 
 .btn-primary:hover {
@@ -182,7 +138,9 @@ p, .body-text {
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 200ms ease-in-out, border-color 200ms ease-in-out, color 200ms ease-in-out;
+  transition: background-color 200ms ease-in-out,
+    border-color 200ms ease-in-out,
+    color 200ms ease-in-out;
 }
 
 .btn-ghost:hover {
@@ -190,8 +148,10 @@ p, .body-text {
   border-color: var(--border-strong);
 }
 
-/* Academic Form Inputs (8-10px radius, subtle border, clear focus) */
-input, select, textarea {
+/* Academic Form Inputs */
+input,
+select,
+textarea {
   font-family: inherit;
   font-size: 0.875rem;
   border-radius: 8px;
@@ -200,10 +160,13 @@ input, select, textarea {
   color: var(--text-primary);
   padding: 0.55rem 0.85rem;
   outline: none;
-  transition: border-color 200ms ease-in-out, box-shadow 200ms ease-in-out;
+  transition: border-color 200ms ease-in-out,
+    box-shadow 200ms ease-in-out;
 }
 
-input:focus, select:focus, textarea:focus {
+input:focus,
+select:focus,
+textarea:focus {
   border-color: var(--primary-blue);
   box-shadow: 0 0 0 3px var(--primary-blue-light);
 }
@@ -221,62 +184,4 @@ input:focus, select:focus, textarea:focus {
 ::-webkit-scrollbar-thumb {
   background: var(--border-strong);
   border-radius: 9999px;
-=======
-}
-
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
-}
-
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
-}
-
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
-}
-
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
-}
-
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
->>>>>>> 452f9fbde59162178ac32d61d868c05608a7bfaa
 }
