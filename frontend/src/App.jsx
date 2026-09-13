@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
 import "./App.css";
+import CreateGroupForm from "./components/CreateGroupForm";
+
+const API_URL = "http://localhost:4000/api";
+const CURRENT_USER_ID = "demo-user";
 
 function App() {
   const [search, setSearch] = useState("");
@@ -7,61 +11,197 @@ function App() {
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [availability, setAvailability] = useState("All");
 
-  // Backend connection
   const [backendStatus, setBackendStatus] = useState("");
   const [groups, setGroups] = useState([]);
-
-  // Selected group for View button
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [loadingGroups, setLoadingGroups] = useState(true);
 
-  // Check backend connection
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+
+  // ============================================
+  // CHECK BACKEND CONNECTION
+  // ============================================
+
   useEffect(() => {
-    fetch("http://localhost:4000/api/health")
-      .then((response) => response.json())
+    fetch(`${API_URL}/health`)
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Backend health check failed");
+        }
+
+        return response.json();
+      })
       .then((data) => {
         setBackendStatus(data.status);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Backend connection error:", error);
         setBackendStatus("Backend not connected");
       });
   }, []);
 
-  // Get groups from backend
+  // ============================================
+  // GET GROUPS FROM BACKEND
+  // ============================================
+
+  const fetchGroups = async () => {
+    try {
+      setLoadingGroups(true);
+
+      const response = await fetch(`${API_URL}/groups`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch groups");
+      }
+
+      const data = await response.json();
+      setGroups(data);
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    } finally {
+      setLoadingGroups(false);
+    }
+  };
+
   useEffect(() => {
-    fetch("http://localhost:4000/api/groups")
-      .then((response) => response.json())
-      .then((data) => {
-        setGroups(data);
-      })
-      .catch((error) => {
-        console.error("Error fetching groups:", error);
-      });
+    fetchGroups();
   }, []);
 
-  // Filter groups
+  // ============================================
+  // HANDLE GROUP CREATED
+  // ============================================
+
+  const handleGroupCreated = async () => {
+    await fetchGroups();
+    setShowCreateForm(false);
+    alert("Group created successfully");
+  };
+
+  // ============================================
+  // UPDATE GROUP
+  // ============================================
+
+  const updateGroup = async (groupId, updatedData) => {
+    try {
+      const response = await fetch(`${API_URL}/groups/${groupId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          ...updatedData,
+          creatorId: CURRENT_USER_ID,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update group");
+      }
+
+      setGroups((previousGroups) =>
+        previousGroups.map((group) =>
+          String(group.id || group._id) === String(groupId)
+            ? data.group
+            : group
+        )
+      );
+
+      setEditingGroup(null);
+      setShowEditForm(false);
+
+      alert("Group updated successfully");
+    } catch (error) {
+      console.error("Update group error:", error);
+      alert(error.message);
+    }
+  };
+
+  // ============================================
+  // DELETE GROUP
+  // ============================================
+
+  const deleteGroup = async (groupId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this group?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/groups/${groupId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          creatorId: CURRENT_USER_ID,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to delete group");
+      }
+
+      setGroups((previousGroups) =>
+        previousGroups.filter(
+          (group) =>
+            String(group.id || group._id) !== String(groupId)
+        )
+      );
+
+      if (
+        selectedGroup &&
+        String(selectedGroup.id || selectedGroup._id) ===
+          String(groupId)
+      ) {
+        setSelectedGroup(null);
+      }
+
+      alert("Group deleted successfully");
+    } catch (error) {
+      console.error("Delete group error:", error);
+      alert(error.message);
+    }
+  };
+
+  // ============================================
+  // FILTER GROUPS
+  // ============================================
+
   const filteredGroups = groups.filter((group) => {
+    const name = group.name || "";
+    const subject = group.subject || "";
+    const description = group.description || "";
+    const groupAvailability = group.availability || "Open";
+
+    const searchText = search.toLowerCase();
+
     const matchesSearch =
-      group.subject
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      group.description
-        .toLowerCase()
-        .includes(search.toLowerCase());
+      name.toLowerCase().includes(searchText) ||
+      subject.toLowerCase().includes(searchText) ||
+      description.toLowerCase().includes(searchText);
 
     const matchesSubject =
-      selectedSubject === "All" ||
-      group.subject === selectedSubject;
+      selectedSubject === "All" || subject === selectedSubject;
 
     const matchesAvailability =
       availability === "All" ||
-      group.availability === availability;
+      groupAvailability === availability;
 
-    return (
-      matchesSearch &&
-      matchesSubject &&
-      matchesAvailability
-    );
+    return matchesSearch && matchesSubject && matchesAvailability;
   });
+
+  // ============================================
+  // CLEAR FILTERS
+  // ============================================
 
   const clearFilters = () => {
     setSelectedSubject("All");
@@ -71,10 +211,8 @@ function App() {
 
   return (
     <div className="app">
-
       {/* SIDEBAR */}
       <aside className="sidebar">
-
         <div className="logo">
           <div className="logo-icon">S</div>
 
@@ -104,9 +242,7 @@ function App() {
             Explore Groups
           </button>
 
-          <p className="menu-title study-title">
-            STUDY
-          </p>
+          <p className="menu-title study-title">STUDY</p>
 
           <button className="menu-item">
             <span>▣</span>
@@ -121,7 +257,6 @@ function App() {
         </nav>
 
         <div className="sidebar-profile">
-
           <div className="avatar">B</div>
 
           <div>
@@ -130,38 +265,25 @@ function App() {
           </div>
 
           <span className="profile-arrow">›</span>
-
         </div>
-
       </aside>
 
-
-      {/* MAIN */}
+      {/* MAIN CONTENT */}
       <main className="main">
-
         {/* TOP BAR */}
         <header className="topbar">
-
           <div>
             <h1>Dashboard</h1>
-
-            <p>
-              Stay organized and study better together.
-            </p>
+            <p>Stay organized and study better together.</p>
           </div>
 
           <div className="top-actions">
-
             <button className="top-notification">
-              ♢
-              <span>2</span>
+              ♢ <span>2</span>
             </button>
 
             <div className="top-profile">
-
-              <div className="small-avatar">
-                B
-              </div>
+              <div className="small-avatar">B</div>
 
               <div>
                 <strong>Bindhu</strong>
@@ -169,40 +291,24 @@ function App() {
               </div>
 
               <span>⌄</span>
-
             </div>
-
           </div>
-
         </header>
 
-
-        {/* WELCOME */}
+        {/* WELCOME SECTION */}
         <section className="welcome">
-
           <div>
+            <p className="welcome-label">GOOD MORNING ☀️</p>
 
-            <p className="welcome-label">
-              GOOD MORNING ☀️
-            </p>
-
-            <h2>
-              Welcome back, Bindhu 👋
-            </h2>
+            <h2>Welcome back, Bindhu 👋</h2>
 
             <p>
-              Find your study group and keep your
-              learning on track.
+              Find your study group and keep your learning on track.
             </p>
-
           </div>
 
-          <div className="welcome-books">
-            📚
-          </div>
-
+          <div className="welcome-books">📚</div>
         </section>
-
 
         {/* BACKEND STATUS */}
         {backendStatus && (
@@ -210,7 +316,7 @@ function App() {
             style={{
               textAlign: "center",
               marginBottom: "15px",
-              fontWeight: "500"
+              fontWeight: "500",
             }}
           >
             {backendStatus === "ok" ? (
@@ -221,15 +327,10 @@ function App() {
           </div>
         )}
 
-
         {/* STATISTICS */}
         <section className="stats">
-
           <div className="stat-card purple-card">
-
-            <div className="stat-icon">
-              ♟
-            </div>
+            <div className="stat-icon">♟</div>
 
             <div>
               <span>My Groups</span>
@@ -238,15 +339,10 @@ function App() {
             </div>
 
             <b>›</b>
-
           </div>
 
-
           <div className="stat-card green-card">
-
-            <div className="stat-icon">
-              ▣
-            </div>
+            <div className="stat-icon">▣</div>
 
             <div>
               <span>Upcoming Sessions</span>
@@ -255,15 +351,10 @@ function App() {
             </div>
 
             <b>›</b>
-
           </div>
 
-
           <div className="stat-card blue-card">
-
-            <div className="stat-icon">
-              ◷
-            </div>
+            <div className="stat-icon">◷</div>
 
             <div>
               <span>Study Hours</span>
@@ -272,15 +363,10 @@ function App() {
             </div>
 
             <b>›</b>
-
           </div>
 
-
           <div className="stat-card orange-card">
-
-            <div className="stat-icon">
-              ♢
-            </div>
+            <div className="stat-icon">♢</div>
 
             <div>
               <span>Notifications</span>
@@ -289,328 +375,280 @@ function App() {
             </div>
 
             <b>›</b>
-
           </div>
-
         </section>
 
+        {/* CREATE GROUP BUTTON AND FORM */}
+        <section className="content-section">
+          <div className="section-heading">
+            <div>
+              <h2>Create a Study Group</h2>
+              <p>Start a new group and invite other students.</p>
+            </div>
 
-        {/* SEARCH */}
+            {!showCreateForm && (
+              <button
+                className="view-all"
+                onClick={() => {
+                  setShowCreateForm(true);
+                  setShowEditForm(false);
+                  setEditingGroup(null);
+                }}
+              >
+                + Create Group
+              </button>
+            )}
+          </div>
+
+          {showCreateForm && (
+            <CreateGroupForm
+              onGroupCreated={handleGroupCreated}
+              onClose={() => setShowCreateForm(false)}
+            />
+          )}
+        </section>
+
+        {/* EDIT GROUP FORM */}
+        {showEditForm && editingGroup && (
+          <section className="content-section">
+            <CreateGroupForm
+              initialData={editingGroup}
+              onSubmit={(updatedData) =>
+                updateGroup(
+                  editingGroup.id || editingGroup._id,
+                  updatedData
+                )
+              }
+              onClose={() => {
+                setEditingGroup(null);
+                setShowEditForm(false);
+              }}
+            />
+          </section>
+        )}
+
+        {/* SEARCH AREA */}
         <section className="search-area">
-
           <div className="search-box">
-
             <span>⌕</span>
 
             <input
               type="text"
               placeholder="Search groups by subject or course..."
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(event) => setSearch(event.target.value)}
             />
-
           </div>
-
 
           <button
             className="filter-btn"
-            onClick={() =>
-              setShowFilter(!showFilter)
-            }
+            onClick={() => setShowFilter(!showFilter)}
           >
             ☷ &nbsp; Filter
           </button>
-
         </section>
-
 
         {/* FILTER PANEL */}
         {showFilter && (
-
           <div className="filter-panel">
-
             <div className="filter-group">
-
               <h4>Subject</h4>
 
               <select
                 value={selectedSubject}
-                onChange={(e) =>
-                  setSelectedSubject(e.target.value)
+                onChange={(event) =>
+                  setSelectedSubject(event.target.value)
                 }
               >
-
-                <option value="All">
-                  All Subjects
-                </option>
-
+                <option value="All">All Subjects</option>
                 <option value="Java Programming">
                   Java Programming
                 </option>
-
                 <option value="Computer Networks">
                   Computer Networks
                 </option>
-
                 <option value="Database Management">
                   Database Management
                 </option>
-
               </select>
-
             </div>
 
-
             <div className="filter-group">
-
               <h4>Availability</h4>
 
               <select
                 value={availability}
-                onChange={(e) =>
-                  setAvailability(e.target.value)
+                onChange={(event) =>
+                  setAvailability(event.target.value)
                 }
               >
-
-                <option value="All">
-                  All
-                </option>
-
-                <option value="Open">
-                  Open
-                </option>
-
+                <option value="All">All</option>
+                <option value="Open">Open</option>
               </select>
-
             </div>
 
-
-            <button
-              className="clear-filter"
-              onClick={clearFilters}
-            >
+            <button className="clear-filter" onClick={clearFilters}>
               Clear Filters
             </button>
-
           </div>
-
         )}
-
 
         {/* STUDY GROUPS */}
         <section className="content-section">
-
           <div className="section-heading">
-
             <div>
-
-              <h2>
-                Explore Study Groups
-              </h2>
-
-              <p>
-                Find students learning the same subjects.
-              </p>
-
+              <h2>Explore Study Groups</h2>
+              <p>Find students learning the same subjects.</p>
             </div>
 
-            <button className="view-all">
-              View all →
+            <button className="view-all" onClick={fetchGroups}>
+              Refresh Groups →
             </button>
-
           </div>
 
+          {loadingGroups ? (
+            <p>Loading study groups...</p>
+          ) : (
+            <div className="group-grid">
+              {filteredGroups.length > 0 ? (
+                filteredGroups.map((group, index) => {
+                  const groupId =
+                    group.id || group._id || index;
 
-          <div className="group-grid">
+                  const isMyGroup =
+                    group.creatorId === CURRENT_USER_ID;
 
-            {filteredGroups.length > 0 ? (
-
-              filteredGroups.map((group) => (
-
-                <div
-                  className={`group-card ${group.color}`}
-                  key={group.subject}
-                >
-
-                  <div className="card-top">
-
-                    <div className="subject-icon">
-                      {group.icon}
-                    </div>
-
-                    <span className="available">
-                      {group.availability}
-                    </span>
-
-                  </div>
-
-
-                  <h3>
-                    {group.subject}
-                  </h3>
-
-
-                  <p>
-                    {group.description}
-                  </p>
-
-
-                  <div className="card-footer">
-
-                    <div className="members">
-                      ♟ &nbsp;
-                      {group.members} members
-                    </div>
-
-
-                    <button
-                      onClick={() =>
-                        setSelectedGroup(group)
-                      }
+                  return (
+                    <div
+                      className={`group-card ${group.color || ""}`}
+                      key={groupId}
                     >
-                      View →
-                    </button>
+                      <div className="card-top">
+                        <div className="subject-icon">
+                          {group.icon || "📚"}
+                        </div>
 
-                  </div>
+                        <span className="available">
+                          {group.availability || "Open"}
+                        </span>
+                      </div>
 
+                      <h3>{group.name || group.subject}</h3>
+
+                      <p>
+                        <strong>Subject:</strong>{" "}
+                        {group.subject}
+                      </p>
+
+                      <p>{group.description}</p>
+
+                      <div className="card-footer">
+                        <div className="members">
+                          ♟ &nbsp; Member limit:{" "}
+                          {group.memberLimit}
+                        </div>
+
+                        <button
+                          onClick={() => setSelectedGroup(group)}
+                        >
+                          View →
+                        </button>
+                      </div>
+
+                      {isMyGroup && (
+                        <div className="card-actions">
+                          <button
+                            onClick={() => {
+                              setEditingGroup(group);
+                              setShowEditForm(true);
+                              setShowCreateForm(false);
+
+                              window.scrollTo({
+                                top: 0,
+                                behavior: "smooth",
+                              });
+                            }}
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            className="delete-button"
+                            onClick={() =>
+                              deleteGroup(
+                                group.id || group._id
+                              )
+                            }
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="no-results">
+                  <div>⌕</div>
+                  <h3>No groups found</h3>
+                  <p>Try changing your search or filters.</p>
                 </div>
-
-              ))
-
-            ) : (
-
-              <div className="no-results">
-
-                <div>⌕</div>
-
-                <h3>
-                  No groups found
-                </h3>
-
-                <p>
-                  Try changing your search or filters.
-                </p>
-
-              </div>
-
-            )}
-
-          </div>
-
+              )}
+            </div>
+          )}
         </section>
-
 
         {/* UPCOMING SESSIONS */}
         <section className="content-section">
-
           <div className="section-heading">
-
             <div>
-
-              <h2>
-                Upcoming Study Sessions
-              </h2>
-
-              <p>
-                Don't miss your scheduled sessions.
-              </p>
-
+              <h2>Upcoming Study Sessions</h2>
+              <p>Don't miss your scheduled sessions.</p>
             </div>
 
-            <button className="view-all">
-              View schedule →
-            </button>
-
+            <button className="view-all">View schedule →</button>
           </div>
-
 
           <div className="sessions">
-
-
             <div className="session-card">
-
               <div className="date-box">
-
                 <span>SEP</span>
                 <strong>15</strong>
-
               </div>
-
 
               <div className="session-info">
-
-                <h3>
-                  Java Study Session
-                </h3>
-
+                <h3>Java Study Session</h3>
                 <p>
-                  ◷ &nbsp;4:00 PM &nbsp; • &nbsp;
-                  📍 Computer Lab / Google Meet
+                  ◷ 4:00 PM &nbsp; • &nbsp; 📍 Computer Lab / Google Meet
                 </p>
-
               </div>
 
+              <span className="session-status">Upcoming</span>
 
-              <span className="session-status">
-                Upcoming
-              </span>
-
-
-              <button className="details-btn">
-                Details →
-              </button>
-
+              <button className="details-btn">Details →</button>
             </div>
-
 
             <div className="session-card">
-
               <div className="date-box blue-date">
-
                 <span>SEP</span>
                 <strong>17</strong>
-
               </div>
-
 
               <div className="session-info">
-
-                <h3>
-                  Computer Networks Discussion
-                </h3>
-
-                <p>
-                  ◷ &nbsp;5:00 PM &nbsp; • &nbsp;
-                  📍 Classroom 204
-                </p>
-
+                <h3>Computer Networks Discussion</h3>
+                <p>◷ 5:00 PM &nbsp; • &nbsp; 📍 Classroom 204</p>
               </div>
 
+              <span className="session-status">Upcoming</span>
 
-              <span className="session-status">
-                Upcoming
-              </span>
-
-
-              <button className="details-btn">
-                Details →
-              </button>
-
+              <button className="details-btn">Details →</button>
             </div>
-
-
           </div>
-
         </section>
-
       </main>
-
 
       {/* GROUP DETAILS POPUP */}
       {selectedGroup && (
-
         <div
           style={{
             position: "fixed",
@@ -618,14 +656,13 @@ function App() {
             left: 0,
             width: "100%",
             height: "100%",
-            backgroundColor: "rgba(0,0,0,0.45)",
+            backgroundColor: "rgba(0, 0, 0, 0.45)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            zIndex: 9999
+            zIndex: 9999,
           }}
         >
-
           <div
             style={{
               background: "white",
@@ -633,73 +670,69 @@ function App() {
               maxWidth: "90%",
               padding: "30px",
               borderRadius: "18px",
-              boxShadow: "0 10px 40px rgba(0,0,0,0.2)"
+              boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
             }}
           >
-
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                marginBottom: "20px"
+                marginBottom: "20px",
               }}
             >
-
               <h2 style={{ margin: 0 }}>
-                {selectedGroup.subject}
+                {selectedGroup.icon || "📚"}{" "}
+                {selectedGroup.name || selectedGroup.subject}
               </h2>
 
-              <div
-  style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "20px"
-  }}
->
-  <h2 style={{ margin: 0 }}>
-    {selectedGroup.icon} {selectedGroup.subject}
-  </h2>
-
-  <button
-    onClick={() => setSelectedGroup(null)}
-    style={{
-      border: "none",
-      background: "transparent",
-      fontSize: "24px",
-      cursor: "pointer",
-      color: "#333"
-    }}
-  >
-    ✕
-  </button>
-</div>
-
+              <button
+                onClick={() => setSelectedGroup(null)}
+                style={{
+                  border: "none",
+                  background: "transparent",
+                  fontSize: "24px",
+                  cursor: "pointer",
+                  color: "#333",
+                }}
+              >
+                ✕
+              </button>
             </div>
 
+            <p>
+              <strong>Subject:</strong>{" "}
+              {selectedGroup.subject}
+            </p>
 
             <p>
+              <strong>Description:</strong>{" "}
               {selectedGroup.description}
             </p>
 
-
             <p>
-              <strong>Members:</strong>{" "}
-              {selectedGroup.members}
+              <strong>Member limit:</strong>{" "}
+              {selectedGroup.memberLimit}
             </p>
 
+            <p>
+              <strong>Created by:</strong>{" "}
+              {selectedGroup.creatorId}
+            </p>
 
             <p>
               <strong>Availability:</strong>{" "}
-              {selectedGroup.availability}
+              {selectedGroup.availability || "Open"}
             </p>
 
-
             <button
-              onClick={() => alert(
-                `You selected ${selectedGroup.subject}`
-              )}
+              onClick={() =>
+                alert(
+                  `You selected ${
+                    selectedGroup.name || selectedGroup.subject
+                  }`
+                )
+              }
               style={{
                 width: "100%",
                 padding: "12px",
@@ -707,19 +740,14 @@ function App() {
                 border: "none",
                 borderRadius: "10px",
                 cursor: "pointer",
-                fontWeight: "600"
+                fontWeight: "600",
               }}
             >
               Join Group
             </button>
-                
-
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }
